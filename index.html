@@ -4,18 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>English Conversation AI</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
-    padding: 0;
+    height: 100vh;
     background: linear-gradient(135deg, #89f7fe, #66a6ff);
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
 }
+
 #chat-container {
     width: 400px;
     max-width: 95%;
@@ -27,6 +29,7 @@ body {
     box-shadow: 0 15px 40px rgba(0,0,0,0.3);
     overflow: hidden;
 }
+
 #chat-header {
     padding: 20px;
     background: linear-gradient(90deg, #4facfe, #00f2fe);
@@ -35,174 +38,160 @@ body {
     text-align: center;
     font-size: 18px;
 }
+
 #conversation {
-    flex-grow: 1;
+    flex: 1;
     padding: 15px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    scroll-behavior: smooth;
 }
+
 .message {
     max-width: 75%;
     padding: 12px 18px;
     border-radius: 20px;
     font-size: 14px;
-    line-height: 1.4;
-    word-wrap: break-word;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
-.user { 
+
+.user {
     align-self: flex-end;
     background: #4facfe;
     color: white;
-    border-bottom-right-radius: 4px;
 }
+
 .ai {
     align-self: flex-start;
     background: #f3f4f6;
     color: #111;
-    border-bottom-left-radius: 4px;
 }
+
 #input-container {
     display: flex;
-    padding: 10px;
     gap: 10px;
-    background: #fff;
+    padding: 10px;
     border-top: 1px solid #ddd;
 }
+
 #message-input {
-    flex-grow: 1;
+    flex: 1;
     padding: 10px 15px;
     border-radius: 20px;
     border: 1px solid #ccc;
     font-size: 14px;
     outline: none;
-    transition: 0.2s;
 }
-#message-input:focus {
-    border-color: #4facfe;
-}
+
 button {
     background: #4facfe;
     color: white;
     border: none;
     border-radius: 20px;
     padding: 0 15px;
-    cursor: pointer;
     font-size: 16px;
-    transition: 0.2s;
+    cursor: pointer;
 }
+
 button:hover {
     background: #00f2fe;
 }
+
 #level-select {
     margin: 10px;
     padding: 8px 12px;
     border-radius: 12px;
     border: 1px solid #ccc;
-    font-size: 14px;
 }
-.loading { font-style: italic; color: #888; }
 </style>
 </head>
+
 <body>
 
 <div id="chat-container">
+
     <div id="chat-header">English Conversation AI</div>
 
     <select id="level-select">
-        <option value="A1">A1</option>
-        <option value="A2">A2</option>
-        <option value="B1">B1</option>
-        <option value="B2">B2</option>
-        <option value="C1">C1</option>
-        <option value="C2">C2</option>
-        <option value="C2+">C2+</option>
+        <option>A1</option><option>A2</option>
+        <option>B1</option><option>B2</option>
+        <option>C1</option><option>C2</option>
     </select>
 
     <div id="conversation"></div>
 
     <div id="input-container">
-        <input type="text" id="message-input" placeholder="Type or speak..." />
-        <button id="startBtn">🎤</button>
+        <input id="message-input" placeholder="Type or speak...">
+        <button id="sendBtn">➤</button>
+        <button id="micBtn">🎤</button>
     </div>
+
 </div>
 
 <script>
-const conversation = document.getElementById('conversation');
-const levelSelect = document.getElementById('level-select');
-const startBtn = document.getElementById('startBtn');
+const conversation = document.getElementById("conversation");
+const input = document.getElementById("message-input");
+const sendBtn = document.getElementById("sendBtn");
+const micBtn = document.getElementById("micBtn");
+const levelSelect = document.getElementById("level-select");
 
-let messageHistory = [];
+let history = [];
 
-let recognition;
-if ('webkitSpeechRecognition' in window) {
-    recognition = new webkitSpeechRecognition();
-} else if ('SpeechRecognition' in window) {
-    recognition = new SpeechRecognition();
-} else {
-    alert('Your browser does not support Speech Recognition.');
+/* ---------- SEND TEXT (ENTER + BUTTON) ---------- */
+sendBtn.onclick = sendMessage;
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+
+function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage("user", text);
+    input.value = "";
+    processAI(text);
 }
-recognition.continuous = false;
-recognition.interimResults = false;
-recognition.lang = 'en-US';
 
-startBtn.onclick = () => recognition.start();
+/* ---------- SPEECH ---------- */
+let recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (recognition) {
+    recognition = new recognition();
+    recognition.lang = "en-US";
+    micBtn.onclick = () => recognition.start();
+    recognition.onresult = e => sendVoice(e.results[0][0].transcript);
+}
 
-recognition.onresult = (event) => {
-    const userText = event.results[0][0].transcript;
-    addMessage('user', userText);
-    processAI(userText);
-};
+function sendVoice(text) {
+    addMessage("user", text);
+    processAI(text);
+}
 
-function addMessage(sender, text) {
-    const div = document.createElement('div');
-    div.className = 'message ' + sender;
+/* ---------- CHAT ---------- */
+function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = "message " + role;
     div.textContent = text;
     conversation.appendChild(div);
     conversation.scrollTop = conversation.scrollHeight;
 }
 
-function processAI(userText) {
-    const level = levelSelect.value;
-    messageHistory.push({ role: 'user', content: `Level ${level}: ${userText}` });
+function processAI(text) {
+    history.push({ role: "user", content: `Level ${levelSelect.value}: ${text}` });
 
-    const loadingEl = document.createElement('div');
-    loadingEl.className = 'message ai loading';
-    loadingEl.textContent = 'AI is typing...';
-    conversation.appendChild(loadingEl);
-    conversation.scrollTop = conversation.scrollHeight;
-
-    fetch('https://magicloops.dev/api/loop/a426f055-2c80-41d3-ba3e-4c721544e8eb/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messageHistory })
+    fetch("https://magicloops.dev/api/loop/a426f055-2c80-41d3-ba3e-4c721544e8eb/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history })
     })
-    .then(res => res.json())
-    .then(data => {
-        conversation.removeChild(loadingEl);
-        if(data && data.reply && data.reply.content){
-            const aiMessage = data.reply.content;
-            addMessage('ai', aiMessage);
-            messageHistory.push({ role: 'assistant', content: aiMessage });
-            speak(aiMessage);
-        } else {
-            addMessage('ai', 'Error: Invalid AI response');
+    .then(r => r.json())
+    .then(d => {
+        if (d?.reply?.content) {
+            addMessage("ai", d.reply.content);
+            history.push({ role: "assistant", content: d.reply.content });
         }
-    })
-    .catch(err => {
-        conversation.removeChild(loadingEl);
-        addMessage('ai', 'Error: ' + err.message);
     });
 }
-
-function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    speechSynthesis.speak(utterance);
-}
 </script>
+
 </body>
 </html>
